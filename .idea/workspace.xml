@@ -4,12 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35ca43ef-5a39-473c-b55c-2c299443deea" name="Changes" comment="add v2">
-      <change afterPath="$PROJECT_DIR$/app_rt.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/data/rotten_tomatoes_movies.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+    <list default="true" id="35ca43ef-5a39-473c-b55c-2c299443deea" name="Changes" comment="add script to rag in rotten_tomatoes_movies.csv">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/app.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app_rt.py" beforeDir="false" afterPath="$PROJECT_DIR$/app_rt.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -148,7 +145,15 @@
       <option name="project" value="LOCAL" />
       <updated>1758461201856</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="add script to rag in rotten_tomatoes_movies.csv">
+      <option name="closed" value="true" />
+      <created>1758470977097</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1758470977097</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -157,7 +162,19 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="add v1" />
     <MESSAGE value="add v2" />
-    <option name="LAST_COMMIT_MESSAGE" value="add v2" />
+    <MESSAGE value="add script to rag in rotten_tomatoes_movies.csv" />
+    <option name="LAST_COMMIT_MESSAGE" value="add script to rag in rotten_tomatoes_movies.csv" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/app_rt.py</url>
+          <line>349</line>
+          <option name="timeStamp" value="3" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/chatbot_rag_llama_index$app.coverage" NAME="app Coverage Results" MODIFIED="1758418998703" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />

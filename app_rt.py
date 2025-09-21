@@ -57,6 +57,23 @@ Ejemplos:
  - ¿Cuáles tienen audience_rating > 4.5 y tomatometer_rating > 80?
 """
 
+ROUTING_KEYWORDS_STRUCT = {
+    "rating", "ratings", "tomatometer", "audience", "genres", "genre", "content_rating",
+    "year", "count", "how many", "cuántas", ">", "<", ">=", "<=", "top", "list", "titles",
+}
+
+def explain_route(query: str, used_engine_name: str) -> str:
+    ql = query.lower()
+    # heurística simple para “por qué”
+    hits = [k for k in ROUTING_KEYWORDS_STRUCT if k in ql]
+    if used_engine_name == "structured_movies":
+        why = "parece una consulta tabular (columnas/valores/ratings/filtros)"
+        if hits:
+            why += f"; palabras clave detectadas: {', '.join(hits)}"
+    else:
+        why = "parece una consulta de texto libre narrativo (sinopsis/temas)"
+    return f"[ROUTER] Estrategia: {used_engine_name}. Motivo: {why}."
+
 def ensure_paths():
     if not os.path.exists(DATA_PATH):
         print(f"[ERROR] No se encontró el CSV en: {DATA_PATH}")
@@ -214,10 +231,6 @@ def build_or_load_vector_index(docs: list) -> VectorStoreIndex:
 # ---------------------------------------
 
 def build_structured_engine(df: pd.DataFrame) -> QueryEngineTool:
-    """
-    Motor de consultas estructuradas (text-to-Pandas).
-    Reglas estrictas para que el LLM genere código ejecutable (sin fences).
-    """
     schema_hint = (
         "You have a pandas DataFrame named df with columns: "
         "movie_title (str), movie_info (str), genres (str), genres_list (list[str]), "
@@ -225,29 +238,29 @@ def build_structured_engine(df: pd.DataFrame) -> QueryEngineTool:
         "tomatometer_rating (str), audience_rating (str), "
         "tomatometer_rating_num (float), audience_rating_num (float). "
         "\n\nTASK: Translate the user request into ONE valid Python expression over df."
-        "\nThe expression must directly compute the answer (counts, filters, small lists)."
+        "\nThe expression must directly compute the answer."
         "\n\nOUTPUT RULES (STRICT):"
         "\n- OUTPUT ONLY a single Python expression."
-        "\n- DO NOT include backticks, Markdown fences, comments, explanations, or the word 'python'."
-        "\n- DO NOT assign to variables; just return the expression itself."
-        "\n- Prefer short lists using .head(N).tolist() for titles."
-        "\n- Use df['genres_list'].apply(lambda xs: 'Horror' in xs) to filter by genre membership."
-        "\n- Use numeric columns tomatometer_rating_num and audience_rating_num for comparisons."
+        "\n- NO backticks, NO Markdown fences, NO comments, NO explanations."
+        "\n- Prefer returning a small DataFrame with informative columns "
+        "  (e.g., ['movie_title','tomatometer_rating_num','audience_rating_num','year'])."
+        "\n- For short lists use .head(N)."
+        "\n- Use df['genres_list'].apply(lambda xs: 'Horror' in xs) for genre membership."
+        "\n- Use numeric columns for comparisons (tomatometer_rating_num, audience_rating_num)."
         "\n\nEXAMPLES:"
-        "\n# 5 comedy titles:"
-        "\ndf[df['genres_list'].apply(lambda xs: 'Comedy' in xs)]['movie_title'].head(5).tolist()"
-        "\n\n# count Horror movies:"
-        "\ndf[df['genres_list'].apply(lambda xs: 'Horror' in xs)].shape[0]"
-        "\n\n# titles with audience_rating>4.5 and tomatometer_rating>80:"
-        "\ndf[(df['audience_rating_num']>4.5) & (df['tomatometer_rating_num']>80)]['movie_title'].head(10).tolist()"
-        "\n\n# PG-13 titles:"
-        "\ndf[df['content_rating']=='PG-13']['movie_title'].head(10).tolist()"
+        "\n# worst rated movie (tomatometer) for an actor (case-insensitive):"
+        "\n(df[df['actors'].str.contains('Robert De Niro', case=False, na=False)]"
+        "\n   .sort_values('tomatometer_rating_num', ascending=True)"
+        "\n   [['movie_title','tomatometer_rating_num','year']].head(1))"
+        "\n\n# top-5 comedy titles with ratings:"
+        "\n(df[df['genres_list'].apply(lambda xs: 'Comedy' in xs)]"
+        "\n   [['movie_title','tomatometer_rating_num','audience_rating_num','year']].head(5))"
     )
 
     pandas_engine = PandasQueryEngine(
         df=df,
-        verbose=False,                 # menos ruido
-        instruction_str=schema_hint,   # reglas estrictas anti-fences
+        verbose=False,
+        instruction_str=schema_hint
     )
 
     return QueryEngineTool(
@@ -295,6 +308,9 @@ def run_chat(router: RouterQueryEngine):
 
         try:
             ans = router.query(q)
+
+            used_engine = "synopsis_rag" if (hasattr(ans, "source_nodes") and ans.source_nodes) else "structured_movies"
+            print(explain_route(q, used_engine))
 
             # Mostrar pasajes recuperados (si fue RAG)
             if hasattr(ans, "source_nodes") and ans.source_nodes:
