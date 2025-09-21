@@ -235,6 +235,15 @@ def run_chat(router: RouterQueryEngine):
             continue
         try:
             ans = router.query(q)
+
+            # Mostrar texto de los pasajes recuperados (solo si la query fue RAG)
+            if hasattr(ans, "source_nodes"):
+                print("\n[DEBUG] Pasajes recuperados:")
+                for i, node in enumerate(ans.source_nodes, 1):
+                    snippet = node.node.get_content()[:200].replace("\n", " ")
+                    meta = node.node.metadata
+                    print(f"  {i}. {meta.get('title', '(sin título)')} | {snippet}...")
+                    
             print("Bot:", getattr(ans, "response", str(ans)))
         except Exception as e:
             print(f"[ERROR] {e}")
