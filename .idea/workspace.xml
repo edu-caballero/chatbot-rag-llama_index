@@ -4,10 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35ca43ef-5a39-473c-b55c-2c299443deea" name="Changes" comment="agrega logs">
-      <change afterPath="$PROJECT_DIR$/app_rt_agents.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+    <list default="true" id="35ca43ef-5a39-473c-b55c-2c299443deea" name="Changes" comment="agrega chatbot usando workflows con functionAgent">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app_rt_agents.py" beforeDir="false" afterPath="$PROJECT_DIR$/app_rt_agents.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -53,6 +52,7 @@
   "keyToString": {
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "Python.app.executor": "Run",
+    "Python.app_rt_agents.executor": "Run",
     "Python.app_using_agents.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
@@ -187,7 +187,15 @@
       <option name="project" value="LOCAL" />
       <updated>1758473620793</updated>
     </task>
-    <option name="localTasksCounter" value="6" />
+    <task id="LOCAL-00006" summary="agrega chatbot usando workflows con functionAgent">
+      <option name="closed" value="true" />
+      <created>1758510522393</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1758510522393</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -198,10 +206,11 @@
     <MESSAGE value="add v2" />
     <MESSAGE value="add script to rag in rotten_tomatoes_movies.csv" />
     <MESSAGE value="agrega logs" />
-    <option name="LAST_COMMIT_MESSAGE" value="agrega logs" />
+    <MESSAGE value="agrega chatbot usando workflows con functionAgent" />
+    <option name="LAST_COMMIT_MESSAGE" value="agrega chatbot usando workflows con functionAgent" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/chatbot_rag_llama_index$app_using_agents.coverage" NAME="app_using_agents Coverage Results" MODIFIED="1758494870274" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/chatbot_rag_llama_index$app_using_agents.coverage" NAME="app_rt_agents Coverage Results" MODIFIED="1758511447386" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/chatbot_rag_llama_index$app.coverage" NAME="app Coverage Results" MODIFIED="1758418998703" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>

@@ -4,9 +4,10 @@
 Chatbot RAG sobre CSV de Rotten Tomatoes con FunctionAgent.
 
 - LLM: OpenAI gpt-4o-mini-2024-07-18 (OPENAI_API_KEY)
-- Embeddings: nomic-ai/nomic-embed-text-v1.5 (HuggingFace/local)
+- Embeddings: sentence-transformers/all-MiniLM-L6-v2 (HuggingFace/local)
 - Persistencia: storage_movies/ (NO reindexa si ya existe)
 - Tools: rag_search (RAG) + movie_stats (tabular)
+- Logging: registra qué tool se ejecuta en cada respuesta.
 """
 
 import os
@@ -26,13 +27,10 @@ from llama_index.core import (
     StorageContext,
     load_index_from_storage,
     Settings,
-    SimpleDirectoryReader,  # no lo usamos, pero queda por si quieres mezclar txt luego
 )
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.agent.workflow import FunctionAgent
-
 from llama_index.core.callbacks import CallbackManager, LlamaDebugHandler
-
 
 # ==============
 # Config / Paths
@@ -44,9 +42,10 @@ PERSIST_DIR = "storage_movies"
 FINGERPRINT_FILE = os.path.join(PERSIST_DIR, ".embed_fingerprint.txt")
 
 OPENAI_LLM_MODEL = "gpt-4o-mini-2024-07-18"
-# Si tenés el modelo en disco (bajado por LM Studio u otro), poné la ruta en EMBED_LOCAL_PATH.
-EMBED_LOCAL_PATH = os.getenv("EMBED_LOCAL_PATH", "").strip()
-EMBED_MODEL_ID = EMBED_LOCAL_PATH if EMBED_LOCAL_PATH else "nomic-ai/nomic-embed-text-v1.5"
+EMBED_MODEL_ID = os.getenv(
+    "EMBED_MODEL_ID",
+    "sentence-transformers/all-MiniLM-L6-v2"  # para ES/EN podrías usar "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+)
 
 # -------------
 # Logging
@@ -57,7 +56,6 @@ fmt = logging.Formatter("[%(asctime)s] %(levelname)s - %(message)s")
 ch = logging.StreamHandler(); ch.setFormatter(fmt); ch.setLevel(logging.INFO)
 fh = logging.FileHandler("movies_rag.log", encoding="utf-8"); fh.setFormatter(fmt); fh.setLevel(logging.INFO)
 logger.addHandler(ch); logger.addHandler(fh)
-
 
 # =====================
 # Utilidades persistencia
@@ -78,13 +76,11 @@ def write_fingerprint(fp: str) -> None:
     with open(FINGERPRINT_FILE, "w", encoding="utf-8") as f:
         f.write(fp)
 
-
 # =====================
 # Configurar modelos
 # =====================
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.llms.openai import OpenAI as OpenAILLM
-from llama_index.core import Settings
 
 def configure_models():
     api_key = os.getenv("OPENAI_API_KEY")
@@ -93,16 +89,12 @@ def configure_models():
 
     # LLM OpenAI
     Settings.llm = OpenAILLM(
-        model="gpt-4o-mini-2024-07-18",
+        model=OPENAI_LLM_MODEL,
         api_key=api_key,
         temperature=0.2,
     )
 
     # Embeddings HuggingFace
-    EMBED_MODEL_ID = "sentence-transformers/all-MiniLM-L6-v2"
-    # Para queries en español, podés probar:
-    # EMBED_MODEL_ID = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-
     Settings.embed_model = HuggingFaceEmbedding(
         model_name=EMBED_MODEL_ID,
         device="cpu"  # "cuda" si tenés GPU
@@ -119,7 +111,6 @@ def configure_models():
     # Debug de prompts/recuperación
     debug_handler = LlamaDebugHandler(print_trace_on_end=True)
     Settings.callback_manager = CallbackManager([debug_handler])
-
 
 # =====================
 # Cargar CSV
@@ -150,13 +141,16 @@ def load_dataframe() -> pd.DataFrame:
     df["audience_rating"] = pd.to_numeric(df["audience_rating"], errors="coerce")
 
     # derivadas útiles
-    df["year"] = df["original_release_date"].apply(lambda s: (re.search(r"(\d{4})", s).group(1) if isinstance(s, str) and re.search(r"(\d{4})", s) else ""))
+    def _year(s):
+        if not isinstance(s, str): return ""
+        m = re.search(r"(\d{4})", s)
+        return m.group(1) if m else ""
+    df["year"] = df["original_release_date"].apply(_year)
 
     # Filtramos filas sin sinopsis
     df = df[df["movie_info"].astype(str).str.strip() != ""].reset_index(drop=True)
     logger.info(f"CSV cargado: {CSV_PATH} | Filas: {len(df)} | Columnas: {len(df.columns)}")
     return df
-
 
 # =====================
 # Construir documentos
@@ -164,7 +158,6 @@ def load_dataframe() -> pd.DataFrame:
 def make_documents_from_df(df: pd.DataFrame) -> List[Document]:
     docs: List[Document] = []
     for _, r in df.iterrows():
-        # Texto principal del RAG: sinopsis + consenso + algunas señales
         parts = [
             f"Título: {r.get('movie_title','')}",
             f"Descripción: {r.get('movie_info','')}",
@@ -183,8 +176,6 @@ def make_documents_from_df(df: pd.DataFrame) -> List[Document]:
             parts.append(f"Audience score: {r.get('audience_rating')}")
 
         text = "\n".join(parts)
-
-        # Metadatos (no se anteponen al chunk)
         md = {
             "movie_title": r.get("movie_title",""),
             "genres": r.get("genres",""),
@@ -198,7 +189,6 @@ def make_documents_from_df(df: pd.DataFrame) -> List[Document]:
         docs.append(Document(text=text, metadata=md))
     logger.info(f"Documentos RAG creados: {len(docs)}")
     return docs
-
 
 # =====================
 # Index: cargar o construir (NO reindex si existe)
@@ -217,7 +207,7 @@ def build_or_load_index(docs: List[Document]) -> VectorStoreIndex:
             storage_ctx = StorageContext.from_defaults(persist_dir=PERSIST_DIR)
             return load_index_from_storage(storage_ctx, embed_model=Settings.embed_model)
         elif required.issubset(existing) and stored_fp and stored_fp != current_fp:
-            # Existe índice pero fue hecho con otro embedder → NO reindexar por pedido del usuario.
+            # Existe índice pero fue hecho con otro embedder → NO reindexar automáticamente.
             raise RuntimeError(
                 "Hay un índice persistido con fingerprint distinto (otro modelo de embeddings). "
                 "Por política de 'no reindexar', aborto. Si querés reconstruir, borra 'storage_movies/' manualmente."
@@ -231,7 +221,6 @@ def build_or_load_index(docs: List[Document]) -> VectorStoreIndex:
     write_fingerprint(current_fp)
     logger.info(f"Índice creado y persistido en {PERSIST_DIR}")
     return index
-
 
 # =====================
 # Tools del agente
@@ -259,7 +248,6 @@ def build_rag_tool(index: VectorStoreIndex):
         return answer
 
     return rag_search
-
 
 def build_movie_stats_tool(df: pd.DataFrame):
     def movie_stats(
@@ -303,6 +291,21 @@ def build_movie_stats_tool(df: pd.DataFrame):
 
     return movie_stats
 
+# ============
+# Tool logger
+# ============
+def wrap_tool(tool_fn, name: str):
+    """Envuelve una tool para loguear cada invocación."""
+    async def async_wrapper(*args, **kwargs):
+        logger.info(f"[TOOL] Ejecutando tool: {name}")
+        return await tool_fn(*args, **kwargs)
+
+    def sync_wrapper(*args, **kwargs):
+        logger.info(f"[TOOL] Ejecutando tool: {name}")
+        return tool_fn(*args, **kwargs)
+
+    return async_wrapper if asyncio.iscoroutinefunction(tool_fn) else sync_wrapper
+
 # =====================
 # CLI
 # =====================
@@ -327,14 +330,13 @@ async def run_cli(agent: FunctionAgent):
             continue
         try:
             t0 = datetime.now()
-            resp = await agent.run(q)
+            resp = await agent.run(q, max_iterations=40)
             dt = (datetime.now() - t0).total_seconds()
             logger.info(f"[AGENT] ok | latency={dt:.3f}s | q='{q}'")
             print(f"\nBot>\n{resp}\n")
         except Exception as e:
             logger.exception("[AGENT] error")
             print(f"[ERROR] {e}")
-
 
 # =====================
 # MAIN
@@ -348,23 +350,27 @@ def main():
     index = build_or_load_index(docs)
 
     # Tools
-    rag_search = build_rag_tool(index)
-    movie_stats = build_movie_stats_tool(df)
+    raw_rag_search = build_rag_tool(index)          # async
+    raw_movie_stats = build_movie_stats_tool(df)    # sync
 
-    # FunctionAgent con 2+ tools
+    # Envolvemos tools para loguear cada invocación
+    rag_search = wrap_tool(raw_rag_search, "rag_search")
+    movie_stats = wrap_tool(raw_movie_stats, "movie_stats")
+
+    # FunctionAgent con 2 tools
     agent = FunctionAgent(
         tools=[rag_search, movie_stats],
         llm=Settings.llm,
         system_prompt=(
             "Eres un asistente sobre películas basadas en un CSV de Rotten Tomatoes.\n"
-            "- Si la pregunta es abierta (sinopsis/consenso/elenco), usa 'rag_search'.\n"
-            "- Si pide rankings o filtros de columnas (top/bottom, director, género, etc.), usa 'movie_stats'.\n"
-            "Responde en español y, si usas RAG, lista 'Fuentes recuperadas'."
-        ),
+            "Tienes SOLO dos herramientas: 'rag_search' y 'movie_stats'.\n"
+            "- Usa 'rag_search' para preguntas narrativas o de sinopsis.\n"
+            "- Usa 'movie_stats' para rankings o consultas tabulares.\n"
+            "Devuelve SIEMPRE la respuesta final en texto plano en español, sin volver a llamar a ninguna tool.\n"
+        )
     )
 
     asyncio.run(run_cli(agent))
-
 
 if __name__ == "__main__":
     main()
