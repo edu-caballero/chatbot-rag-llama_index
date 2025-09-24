@@ -14,7 +14,7 @@ Variables de entorno (.env):
   OPENAI_API_KEY=sk-...
 
 Ejecución:
-  python app.py
+  python chat.py
 """
 
 import os
@@ -243,7 +243,7 @@ def run_chat(router: RouterQueryEngine):
                     snippet = node.node.get_content()[:200].replace("\n", " ")
                     meta = node.node.metadata
                     print(f"  {i}. {meta.get('title', '(sin título)')} | {snippet}...")
-                    
+
             print("Bot:", getattr(ans, "response", str(ans)))
         except Exception as e:
             print(f"[ERROR] {e}")

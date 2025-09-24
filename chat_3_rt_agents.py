@@ -5,7 +5,7 @@ Chatbot RAG sobre CSV de Rotten Tomatoes con FunctionAgent.
 
 - LLM: OpenAI gpt-4o-mini-2024-07-18 (OPENAI_API_KEY)
 - Embeddings: nomic-ai/nomic-embed-text-v1.5 (HuggingFace/local)
-- Persistencia: storage_movies/ (NO reindexa si ya existe)
+- Persistencia: storage_3/ (NO reindexa si ya existe)
 - Tools: rag_search (RAG) + movie_stats (tabular)
 """
 
@@ -40,7 +40,7 @@ from llama_index.core.callbacks import CallbackManager, LlamaDebugHandler
 load_dotenv()
 
 CSV_PATH = os.getenv("CSV_PATH", "data/rotten_tomatoes_movies.csv")
-PERSIST_DIR = "storage_movies"
+PERSIST_DIR = "storage_3"
 FINGERPRINT_FILE = os.path.join(PERSIST_DIR, ".embed_fingerprint.txt")
 
 OPENAI_LLM_MODEL = "gpt-4o-mini-2024-07-18"
@@ -220,7 +220,7 @@ def build_or_load_index(docs: List[Document]) -> VectorStoreIndex:
             # Existe índice pero fue hecho con otro embedder → NO reindexar por pedido del usuario.
             raise RuntimeError(
                 "Hay un índice persistido con fingerprint distinto (otro modelo de embeddings). "
-                "Por política de 'no reindexar', aborto. Si querés reconstruir, borra 'storage_movies/' manualmente."
+                "Por política de 'no reindexar', aborto. Si querés reconstruir, borra 'storage_3/' manualmente."
             )
 
     # Si no existe persistencia válida, construimos UNA vez

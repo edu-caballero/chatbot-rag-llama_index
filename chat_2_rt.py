@@ -41,7 +41,7 @@ from llama_index.core.callbacks import CallbackManager, LlamaDebugHandler
 # ---------------------------
 
 DATA_PATH = "data/rotten_tomatoes_movies.csv"
-PERSIST_DIR = "rt_storage"
+PERSIST_DIR = "storage_2"
 FINGERPRINT_FILE = os.path.join(PERSIST_DIR, ".embed_fingerprint.txt")
 
 # Embedding fijo → fingerprint estable → NO reindexa si no cambia
