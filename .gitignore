@@ -205,3 +205,9 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+storage/
+storage_2/
+storage_3/
+storage_4/
+storage_5/
